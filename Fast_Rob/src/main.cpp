@@ -1,6 +1,11 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <L298.h>
+#include <HCSR04.h>
+#include "IR08H.h"
+
+IR08H ir(6, 9);  // Initialize IR08H sensor on pin 6 with enable pin 9.
+// UltraSonicDistanceSensor distanceSensor(7, 8);  // Initialize sensor that uses digital pins 13 and 12.
 
 uint8_t in1 = 2;  // Pin for IN1 control
 uint8_t in2 = 3;  // Pin for IN2 control
@@ -16,30 +21,22 @@ void setup() {
   Serial.begin(115200);
   motor.begin();  // Initialize the motor driver pins
   Serial.println("L298 Motor Driver Initialized");
-  
+  ir.begin();  // Initialize the IR08H sensor
 }
 
 void loop() {
+  // Serial.println(distanceSensor.measureDistanceCm());
+  delay(500);
   // put your main code here, to run repeatedly:
-  motor.moveForward(255);  // Move motors forward at full speed
-  Serial.println("Moving Forward");
-  delay(2000);  // Wait for 2 seconds
-  motor.reverse(255);  // Move motors backward at full speed
-  Serial.println("Reversing");
-  delay(2000);  // Wait for 2 seconds
-  motor.turnLeft(255);  // Turn right at full speed
-  Serial.println("Turning Right");
-  delay(2000);  // Wait for 2 seconds
-  motor.turnRight(255);  // Turn left at full speed
-  Serial.println("Turning Left");
-  delay(2000);  // Wait for 2 seconds
-  motor.stop();  // Stop the motors
-  Serial.println("Motors Stopped");
-  delay(2000);  // Wait for 2 seconds before repeating
-  motor.moveForward(128);  // Move motors forward at half speed 
-  Serial.println("Moving Forward at Half Speed");
-  delay(2000);  // Wait for 2 seconds
-  motor.reverse(128);  // Move motors backward at half speed
+
+  if(ir.readValue() == 0) {  // If an obstacle is detected within 100 units
+    motor.stop();  // Stop the motors
+    delay(1000);  // Wait for 1 second
+    motor.reverse(125);  // Reverse at full speed
+    delay(1000);
+  } 
+  
+  motor.moveForward(125);  // Move forward at full speed
   delay(2000);  // Wait for 2 seconds
 }
 
