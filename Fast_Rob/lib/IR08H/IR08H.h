@@ -10,7 +10,7 @@ public:
      * 
      * @param pin The pin number to which the IR08H sensor is connected.
      */
-    IR08H(uint8_t out, uint8_t EN);
+    IR08H(uint8_t out);
 
     /**
      * @brief Initialize the IR08H sensor.
@@ -25,7 +25,6 @@ public:
     int readValue();
 private:
     uint8_t _pin;  // Pin number for the IR08H sensor
-    uint8_t _EN;   // Enable pin for the IR08H sensor (if applicable)
 };
 
 #endif // IR08H_H

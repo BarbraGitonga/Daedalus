@@ -6,11 +6,12 @@
 #include "HW201.h"
 #include "../lib/config.h"
 
-IR08H ir_middle(ir_middle_pin, ir_middle_enable_pin);  // Initialize IR08H sensor on pin 6 with enable pin 9.
 // UltraSonicDistanceSensor distanceSensor(7, 8);  // Initialize sensor that uses digital pins 13 and 12.
+HW201 ir_middle(ir_middle_pin);  // Initialize IR08H sensor on pin 6 with enable pin 9.
 HW201 ir_left(ir1_pin);
 HW201 ir_right(ir2_pin);
 
+IR08H obs(obstacle_pin);
 L298Pins motorPins = {in1, in2, enA, in3, in4, enB};
 L298 motor(motorPins);
 
@@ -28,20 +29,27 @@ void loop() {
   // Serial.println(distanceSensor.measureDistanceCm());
   delay(500);
   // put your main code here, to run repeatedly:
-
-  if(ir_middle.readValue() == 0) {  // If an obstacle is detected within 100 units
-    motor.moveForward(125);  // Stop the motors
-    delay(1000);
-  } else if(ir_left.readValue() == 1) {
-    motor.turnLeft(125);  // Turn left at full speed
-    delay(1000);
-  } else if(ir_right.readValue() == 1) {
-    motor.turnRight(125);  // Turn right at full speed
-    delay(1000);
+  // motor.moveForward(125);  // Move forward at full speed
+  if (obs.readValue() == 0) {  // If an obstacle is detected
+    // motor.stop();  // Stop the motors
+    Serial.println("Obstacle detected, stopping motors");
+    delay(1000);  // Wait for a second before checking again
+    return;  // Exit the loop to avoid further actions
+  }
+  if(ir_middle.readValue() == 1) {  
+    // motor.moveForward(125);  // Stop the motors
+    Serial.println("Moving foward");
+  }
+  else if(ir_left.readValue() == 1) {
+    // motor.turnLeft(125);  // Turn left at full speed
+    Serial.println("Turning left");
+    
   } 
+  else if(ir_right.readValue() == 1) {
+    Serial.println("Turning right");
+  }
   
-  motor.moveForward(125);  // Move forward at full speed
-  delay(2000);  // Wait for 2 seconds
+  // motor.moveForward(125);  // Move forward at full speed
 }
 
 // put function definitions here:
