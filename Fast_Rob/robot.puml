@@ -63,11 +63,13 @@ state Maze_search {
   Rescue --> Obstacle_Avoidance
 }
 Maze_search --> Rest : If all IRs are LOW
-Rest : All motors stop.
-Rest --> Drop_claws
-Rest --> Open_claws
-Rest --> Raise_claws
-Rest --> Close_claws
+state Rest{
+  [*] --> Drop_Claws
+  Drop_Claws --> Open_Claws
+  Open_Claws --> Raise_Claws
+  Raise_Claws --> Close_Claws
+}
 
+Rest : All motors stop.
 Rest --> [*]
 @enduml
