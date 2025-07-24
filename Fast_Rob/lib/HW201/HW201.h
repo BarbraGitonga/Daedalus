@@ -16,7 +16,7 @@ class HW201 {
 public:
     HW201(uint8_t pin);
     void begin();
-    int readValue();
+    bool isLine();
 private:
     uint8_t _pin;
 };

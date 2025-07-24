@@ -28,7 +28,11 @@ void HW201::begin() {
  * 
  * @return int 
  */
-int HW201::readValue() {
+bool HW201::isLine() {
     // Read the analog value from the sensor pin
-    return digitalRead(_pin);  // Read the value from the sensor
+    if(digitalRead(_pin)){
+        return true; // Line detected
+    } else {
+        return false; // No line detected
+    } // Read the value from the sensor
 }

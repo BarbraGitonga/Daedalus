@@ -6,50 +6,149 @@
 #include "HW201.h"
 #include "../lib/config.h"
 
-// UltraSonicDistanceSensor distanceSensor(7, 8);  // Initialize sensor that uses digital pins 13 and 12.
-HW201 ir_middle(ir_middle_pin);  // Initialize IR08H sensor on pin 6 with enable pin 9.
-HW201 ir_left(ir1_pin);
-HW201 ir_right(ir2_pin);
+enum State {
+  LINE_FOLLOWING,
+  MAZE_SOLVING,
+  RESCUE,
+  COMPLETE
+};
 
+State currentState = LINE_FOLLOWING;
+volatile bool obs_flag = false;
+volatile bool object = false;
+unsigned long lineLostTime = 0;
+
+HW201 ir_middle(ir_middle_pin);
+HW201 ir_left(ir_left_pin);
+HW201 ir_right(ir_right_pin);
 IR08H obs(obstacle_pin);
+
 L298Pins motorPins = {in1, in2, enA, in3, in4, enB};
 L298 motor(motorPins);
 
+// Interrupt handler
+void obstacleDetected() {
+  obs_flag = true;
+}
+
+void objectDetected(){
+  object = true;
+}
+
+void handleLineFollowing() {
+  bool leftValue = ir_left.isLine();
+  bool rightValue = ir_right.isLine();
+  bool middleValue = ir_middle.isLine();
+
+  if(!leftValue && !rightValue && !middleValue) {
+    if (lineLostTime == 0) {
+      lineLostTime = millis(); // Start the timer when line is lost
+    } else if (millis() - lineLostTime > 2000) { // If line is lost for more than 2 seconds
+      Serial.println("Line lost for too long, switching to MAZE_SOLVING state.");
+      motor.stop(); // Stop the motors
+      lineLostTime = 0; // Reset the timer
+      currentState = MAZE_SOLVING; // Switch to maze solving state
+      Serial.print("Switching to state: ");
+      Serial.println(stateToString(currentState));
+      return;
+    }
+  }
+  if (middleValue) { // Assuming a threshold for line detection
+    motor.moveForward(200); // Move forward
+  } else if (leftValue) {
+    motor.turnLeft(200); // Turn left
+  } else if (rightValue) {
+    motor.turnRight(200); // Turn right
+  } else {
+    motor.stop(); // Stop if no line detected
+  }
+  delay(100);
+}
+void handleObstacle(){
+  motor.stop();
+  delay(500);
+  while(obs.readValue() == LOW){
+    motor.turnRight(100);
+    delay(1000);
+  }
+  obs_flag = false; // Reset the obstacle flag
+}
+void handleMazeSolving() {
+  if(obs_flag && !object){
+    handleObstacle();
+  } else if (object) {
+    motor.stop();
+    currentState = RESCUE;
+    Serial.print("Switching to state: ");
+    Serial.println(stateToString(currentState));
+
+    return;
+  }
+  else if(ir_middle.isLine() && ir_left.isLine() && ir_right.isLine()) {
+    delay(1000);
+    motor.stop(); // Move forward if all sensors detect the line
+    currentState = COMPLETE; // Set state to COMPLETE when the maze is solved
+    Serial.print("Switching to state: ");
+    Serial.println(stateToString(currentState));
+
+    return;
+  }
+  else{
+    motor.moveForward(200);
+  }
+}
+void handleRescue() {
+  // Implement rescue logic here
+  // For example, navigate to a specific point or perform a specific action
+  Serial.println("Handling rescue operation...");
+  // After completing the rescue, switch back to line following or maze solving
+  currentState = MAZE_SOLVING; // Or MAZE_SOLVING based on your logic
+  Serial.print("Switching to state: ");
+  Serial.println(stateToString(currentState));
+  return;
+}
+
+const char* stateToString(State state) {
+  switch (state) {
+    case LINE_FOLLOWING: return "LINE_FOLLOWING";
+    case MAZE_SOLVING: return "MAZE_SOLVING";
+    case RESCUE: return "RESCUE";
+    case COMPLETE: return "COMPLETE";
+    default: return "UNKNOWN";
+  }
+}
+
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
-  motor.begin();  // Initialize the motor driver pins
-  Serial.println("L298 Motor Driver Initialized");
-  ir_middle.begin();  // Initialize the IR08H sensor
-  ir_left.begin();  // Initialize the first HW201 sensor
-  ir_right.begin();  // Initialize the second HW201 sensor
+  motor.begin();
+  ir_middle.begin();
+  ir_left.begin();
+  ir_right.begin();
+  obs.begin();
+
+  // Use FALLING to detect transition from HIGH to LOW (obstacle present)
+  attachInterrupt(digitalPinToInterrupt(obstacle_pin), obstacleDetected, FALLING);
 }
 
 void loop() {
-  // Serial.println(distanceSensor.measureDistanceCm());
-  delay(500);
-  // put your main code here, to run repeatedly:
-  // motor.moveForward(125);  // Move forward at full speed
-  if (obs.readValue() == 0) {  // If an obstacle is detected
-    // motor.stop();  // Stop the motors
-    Serial.println("Obstacle detected, stopping motors");
-    delay(1000);  // Wait for a second before checking again
-    return;  // Exit the loop to avoid further actions
+  if (obs_flag) {
+    // Handle obstacle avoidance
+    handleObstacle();
+    return;
   }
-  if(ir_middle.readValue() == 1) {  
-    // motor.moveForward(125);  // Stop the motors
-    Serial.println("Moving foward");
-  }
-  else if(ir_left.readValue() == 1) {
-    // motor.turnLeft(125);  // Turn left at full speed
-    Serial.println("Turning left");
-    
-  } 
-  else if(ir_right.readValue() == 1) {
-    Serial.println("Turning right");
-  }
-  
-  // motor.moveForward(125);  // Move forward at full speed
-}
 
-// put function definitions here:
+  if (currentState == LINE_FOLLOWING) {
+    handleLineFollowing();
+  } 
+  else if (currentState == MAZE_SOLVING) {
+    handleMazeSolving();  // You’ll define this later
+  }
+  else if (currentState == RESCUE) {
+    handleRescue(); // Handle rescue operations
+  } 
+  else if (currentState == COMPLETE) {
+    Serial.println("Operation complete.");
+    motor.stop(); // Stop the motors
+    while (true); // Halt the program
+  }
+}

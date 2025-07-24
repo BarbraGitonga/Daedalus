@@ -3,8 +3,8 @@
 
 #include <cstdint>
 // H201 IR sensor configurations
-#define ir1_pin 7  // Pin for the first HW201 IR sensor
-#define ir2_pin 8 // Pin for the second HW201 IR sensor
+#define ir_left_pin 7  // Pin for the first HW201 IR sensor
+#define ir_right_pin 8 // Pin for the second HW201 IR sensor
 #define ir_middle_pin 9  // Pin for the middle IR08H sensor
 
 // IR08H sensor configurations
