@@ -1,0 +1,73 @@
+@startuml
+[*] --> Init
+Init : Initialize sensors and motors
+Init : Set PID parameters
+Init --> Line_Tracking
+
+'--- Line Following Phase ---
+state Line_Tracking {
+   [*] --> Check_Sensors
+
+   Check_Sensors --> Turn_Left : Left_IR is HIGH
+   Check_Sensors --> Turn_Right : Right_IR is HIGH
+   Check_Sensors --> Move_forward : Middle_IR is HIGH
+
+   Turn_Left : Turn left (Right motor spins)
+   Turn_Left --> Turn_Left : Middle_IR is LOW
+   Turn_Left --> Move_forward : Middle_IR is HIGH
+
+   Turn_Right : Turn right (Left motor spins)
+   Turn_Right --> Turn_Right : Middle_IR is LOW
+   Turn_Right --> Move_forward : Middle_IR is HIGH
+
+   Move_forward : Motors in forward mode
+   Move_forward --> Check_Sensors : Loop back to check
+
+}
+
+Line_Tracking --> Maze_search : All IR sensors are LOW (off the line)
+
+'--- Maze Navigation Phase ---
+state Maze_search {
+  [*] --> Rescue_path
+  Rescue_path : Receives an interrupt from camera
+
+  Rescue_path --> Obstacle_Avoidance : No HIGH from camera
+
+  state Obstacle_Avoidance {
+    [*] --> Check_sensor
+    Check_sensor --> Turn_right : IR08H is LOW
+    Check_sensor --> Move_Forward : IR08H is HIGH
+
+    Turn_right : Rotate in place
+    Turn_right --> Turn_right : IR08H is still LOW
+    Turn_right --> Move_Forward : IR08H becomes HIGH
+
+    Move_Forward : Motors move forward
+  }
+
+  Rescue_path --> Rescue : Waits for camera interrupt
+
+  state Rescue {
+    [*] --> Ultra_check
+    Ultra_check --> Move_4ward : ultrasonic sensor > x cm
+    Ultra_check --> stop : ultrasonic sensor <= x cm
+    state Pick_object {
+      [*] --> Open_claws
+      Open_claws --> Drop_claws
+      Drop_claws --> Close_claws
+      Close_claws --> Raise_claws
+    }
+    stop --> Pick_object
+  }
+  Rescue --> Obstacle_Avoidance
+}
+Maze_search --> Rest : If all IRs are LOW
+Rest : All motors stop.
+Rest --> Drop_claws
+Rest --> Open_claws
+Rest --> Raise_claws
+Rest --> Close_claws
+
+Rest --> [*]
+@enduml
