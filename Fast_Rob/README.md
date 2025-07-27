@@ -25,7 +25,6 @@ This project will require the following components:
 | Battery Pack/ 3.7V Lion batteries      | 2         |          | Power supply                               |
 | Jumper Wires      | 1 set    |          | Connections                                |
 | Breadboard        | 1        |          | Prototyping                                |
-| Object Holder     | 1        | $2         | To carry/retrieve object                   |
 
 ## CAD designs
 
