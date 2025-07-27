@@ -82,3 +82,27 @@ void L298::stop() {
     digitalWrite(in4, LOW);
     analogWrite(enB, 0);
 }
+
+void L298::setSpeed(int leftSpeed, int rightSpeed) {
+    // ---- Left motor control ----
+    if (leftSpeed >= 0) {
+        digitalWrite(in1, HIGH);
+        digitalWrite(in2, LOW);
+    } else {
+        digitalWrite(in1, LOW);
+        digitalWrite(in2, HIGH);
+        leftSpeed = -leftSpeed; // Make positive for PWM
+    }
+    analogWrite(enA, constrain(leftSpeed, 0, 255)); // Clamp to 0–255
+
+    // ---- Right motor control ----
+    if (rightSpeed >= 0) {
+        digitalWrite(in3, HIGH);
+        digitalWrite(in4, LOW);
+    } else {
+        digitalWrite(in3, LOW);
+        digitalWrite(in4, HIGH);
+        rightSpeed = -rightSpeed;
+    }
+    analogWrite(enB, constrain(rightSpeed, 0, 255));
+}

@@ -5,6 +5,7 @@
 #include "IR08H.h"
 #include "HW201.h"
 #include "../lib/config.h"
+#include "PID.h"
 
 enum State {
   LINE_FOLLOWING,
@@ -25,7 +26,14 @@ IR08H obs(obstacle_pin);
 
 L298Pins motorPins = {in1, in2, enA, in3, in4, enB};
 L298 motor(motorPins);
+int baseSpeed = 200; // Base speed for the motors
 
+double kp = 1.0; // Proportional gain
+double ki = 0.1; // Integral gain
+double kd = 0.01; // Derivative gain
+int weights[] = {-2, 0, 2}; // Line sensor array weights
+int sensor_number = sizeof(weights) / sizeof(weights[0]); // Number of sensors
+PID pidController(kp, ki, kd, weights, sensor_number); // Initialize PID controller with example values
 // Interrupt handler
 void obstacleDetected() {
   obs_flag = true;
@@ -35,7 +43,7 @@ void objectDetected(){
   object = true;
 }
 
-void handleLineFollowing() {
+void handleLineFollowing(){
   bool leftValue = ir_left.isLine();
   bool rightValue = ir_right.isLine();
   bool middleValue = ir_middle.isLine();
@@ -53,17 +61,46 @@ void handleLineFollowing() {
       return;
     }
   }
-  if (middleValue) { // Assuming a threshold for line detection
-    motor.moveForward(200); // Move forward
-  } else if (leftValue) {
-    motor.turnLeft(200); // Turn left
-  } else if (rightValue) {
-    motor.turnRight(200); // Turn right
-  } else {
-    motor.stop(); // Stop if no line detected
-  }
-  delay(100);
+
+  int sensors[] = {leftValue, middleValue, rightValue};
+
+  double correction = pidController.compute(sensors);
+  int leftSpeed = baseSpeed + correction;
+  int rightSpeed = baseSpeed - correction;
+  if (leftSpeed < 0) leftSpeed = 0; // Ensure speed is not negative
+  if (rightSpeed < 0) rightSpeed = 0; // Ensure speed is  not negative
+  motor.setSpeed(leftSpeed, rightSpeed);
 }
+
+// void handleLineFollowing() {
+//   bool leftValue = ir_left.isLine();
+//   bool rightValue = ir_right.isLine();
+//   bool middleValue = ir_middle.isLine();
+
+//   if(!leftValue && !rightValue && !middleValue) {
+//     if (lineLostTime == 0) {
+//       lineLostTime = millis(); // Start the timer when line is lost
+//     } else if (millis() - lineLostTime > 2000) { // If line is lost for more than 2 seconds
+//       Serial.println("Line lost for too long, switching to MAZE_SOLVING state.");
+//       motor.stop(); // Stop the motors
+//       lineLostTime = 0; // Reset the timer
+//       currentState = MAZE_SOLVING; // Switch to maze solving state
+//       Serial.print("Switching to state: ");
+//       Serial.println(stateToString(currentState));
+//       return;
+//     }
+//   }
+//   if (middleValue) { // Assuming a threshold for line detection
+//     motor.moveForward(200); // Move forward
+//   } else if (leftValue) {
+//     motor.turnLeft(200); // Turn left
+//   } else if (rightValue) {
+//     motor.turnRight(200); // Turn right
+//   } else {
+//     motor.stop(); // Stop if no line detected
+//   }
+//   delay(100);
+// }
 void handleObstacle(){
   motor.stop();
   delay(500);

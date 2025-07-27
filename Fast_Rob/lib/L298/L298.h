@@ -77,6 +77,14 @@ public:
      * @brief Stop both motors.
      */
     void stop();
+    /**
+     * @brief Set the speed of both motors.
+     * 
+     * @param leftSpeed Speed for the left motor (0-255).
+     * @param rightSpeed Speed for the right motor (0-255).
+     */
+    void setSpeed(int leftSpeed, int rightSpeed);
+
 private:
     uint8_t in1;
     uint8_t in2;
